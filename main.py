@@ -1,56 +1,101 @@
 import requests
 import json
 import csv
+import pandas as pd
+import numpy as np
 
 
-# Check connection with an API
-def check_connection():
-    url = 'https://api.coingecko.com/api/v3/ping'
-    response = requests.get(url)
-    if response.text == '{"gecko_says":"(V3) To the Moon!"}':
-        return True
-    return False
+class GatherInformation:
+    @staticmethod
+    # Check connection with an API
+    def check_connection():
+        url = 'https://api.coingecko.com/api/v3/ping'
+        response = requests.get(url)
+        if response.text == '{"gecko_says":"(V3) To the Moon!"}':
+            return True
+        return False
+
+    @staticmethod
+    # Download date
+    def get_info(crypto_name, days):
+        url = "https://api.coingecko.com/api/v3/coins/" + crypto_name + "/market_chart?vs_currency=usd&days=" + str(days) + "&interval=daily"
+        response = requests.get(url)
+
+        if str(response) != "<Response [200]>":
+            print("ERROR -", response, crypto_name)
+            return 0
+
+        # extract only price of bitcoin
+        # make dictionary from request and sort it
+        json_dict = dict(response.json())
+        dates_and_prices = json_dict.get('prices')
+        sorted(dates_and_prices)
+
+        price = []
+        date = []
+        for i in dates_and_prices:
+            date.append(i[0])
+            price.append(i[1])
+
+        return date, price
+
+    @staticmethod
+    # Collect data about every crypto currency
+    def prep_rows(crypto_names, days):
+        dictionary = {}
+
+        for name in crypto_names:
+            # first crypto goes with dates
+            # for the rest, price is the important thing
+            if name == crypto_names[0]:
+                dates_and_prices = GatherInformation.get_info(name, days)
+                dictionary['date'] = dates_and_prices[0]
+                dictionary[name] = np.round(dates_and_prices[1], 2)
+                continue
+
+            # extract only prices
+            dates_and_prices = GatherInformation.get_info(name, days)
+            dictionary[name] = np.round(dates_and_prices[1], 2)
+        return dictionary
+
+    @staticmethod
+    # Take all rows and put them into .csv file
+    def create_csv_file(dictionary, crypto_names):
+        with open("crypto.csv", "w", newline='') as file:
+            writer = csv.writer(file)
+            rows_quantity = len(dictionary.get('date'))
+
+            # first row with column's names
+            temp = ['date']
+            temp.extend(crypto_names)
+            writer.writerow(temp)
+
+            for row in range(rows_quantity - 1):
+                new_row = []
+                # create row
+                for crypto_name in dictionary:
+                    new_row.append(dictionary.get(crypto_name)[row])
+
+                # write row
+                writer.writerow(new_row)
+            file.close()
+
+    @staticmethod
+    def read_csv_file(csv_file_path):
+        csv_file = pd.read_csv(csv_file_path)
+        return csv_file
 
 
-# Download date
-def get_info(crypto_name):
-    url = "https://api.coingecko.com/api/v3/coins/" + crypto_name + "/market_chart?vs_currency=usd&days=2&interval=daily"
-    response = requests.get(url)
+def init():
+    crypto_names = ["bitcoin", "litecoin", "ethereum", "monero"]
+    days = 2000
+    path = 'crypto.csv'
 
-    if str(response) != "<Response [200]>":
-        print("ERROR -", response)
-        return 0
+    dictionary = GatherInformation.prep_rows(crypto_names, days)
 
-    # extract only price of bitcoin
-    # make dictionary from request and sort it
-    json_dict = dict(response.json())
-    dates_and_prices = json_dict.get('prices')
-    sorted(dates_and_prices)
-
-    return dates_and_prices
+    GatherInformation.create_csv_file(dictionary, crypto_names)
+    cryptos = GatherInformation.read_csv_file(path)
+    print(cryptos)
 
 
-# Collect data about every crypto currency
-def prep_rows():
-    dictionary = {"bitcoin": [], "litecoint": []}
-    names = ["bitcoin", "litecoin"]
-    for name in names:
-        dates, prices = get_info(name)
-        dictionary[name] = prices
-    return dictionary
-
-
-# Take all rows and put them into .csv file
-def create_csv_file(dictionary):
-    with open("crypto.csv", "w", newline='') as file:
-        writer = csv.writer(file)
-        for i in dictionary:
-            #todo
-            for j in i:
-                writer.writerow()
-        file.close()
-
-
-print(check_connection())
-# create_csv_file(prep_rows())
-print(get_info("ethereum"))
+init()
