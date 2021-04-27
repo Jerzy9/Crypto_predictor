@@ -3,6 +3,7 @@ import json
 import csv
 import pandas as pd
 import numpy as np
+from _datetime import datetime
 
 
 class GatherInformation:
@@ -87,15 +88,19 @@ class GatherInformation:
 
 
 def init():
-    crypto_names = ["bitcoin", "litecoin", "ethereum", "monero"]
-    days = 2000
+    # crypto_names = ["bitcoin", "litecoin", "ethereum", "monero"]
+    crypto_names = ["bitcoin"]
+    days = 1000
     path = 'crypto.csv'
+
 
     dictionary = GatherInformation.prep_rows(crypto_names, days)
 
     GatherInformation.create_csv_file(dictionary, crypto_names)
     cryptos = GatherInformation.read_csv_file(path)
     print(cryptos)
+    ts = cryptos.iloc[len(cryptos) - 1].date
+    print(ts)
 
 
 init()
