@@ -2,22 +2,56 @@ import pandas as pd
 import numpy as np
 import statsmodels as statsmodels
 import tqdm as tqdm
-from matplotlib import pyplot
+import matplotlib.pyplot as plt
+from datetime import datetime
+from datetime import timedelta
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 from statsmodels.tsa.stattools import acf, pacf
-
 from statsmodels.tsa.stattools import adfuller
 
 
 class SarimaModel:
 
     @staticmethod
-    def load_data():
+    def load_data_from_csv():
         bc = pd.read_csv("crypto.csv")
         # setting the index as dates
         bc.set_index('date', inplace=True)
+        # bc = bc.asfreq(pd.infer_freq(bc.index))
 
         return bc
+
+    @staticmethod
+    def remove_trend(bc):
+        first_diff = bc.diff()[1:]
+        plt.figure(figsize=(10, 4))
+        plt.plot(first_diff)
+        plt.title('bitcoin', fontsize=20)
+        plt.ylabel('price', fontsize=16)
+        # for year in range(start_date.year, end_date.year):
+        #     plt.axvline(pd.to_datetime(str(year) + '-01-01'), color='k', linestyle='--', alpha=0.2)
+        plt.axhline(0, color='k', linestyle='--', alpha=0.2)
+        plt.show()
+
+        return first_diff
+
+    @staticmethod
+    def acf(first_diff):
+        acf_vals = acf(first_diff)
+        num_lags = 20
+        plt.bar(range(num_lags), acf_vals[:num_lags])
+        plt.show()
+
+        return acf_vals
+
+    @staticmethod
+    def pacf(first_diff):
+        pacf_vals = pacf(first_diff)
+        num_lags = 15
+        plt.bar(range(num_lags), pacf_vals[:num_lags])
+        plt.show()
+
+        return pacf_vals
 
     @staticmethod
     def prepare_data(bc):
@@ -79,11 +113,28 @@ class SarimaModel:
         output = model.fit()
         return output
 
+    @staticmethod
+    def train_data_2(bc):
+        train_end = datetime(1999, 7, 1)
+        test_end = datetime(2000, 1, 1)
 
-bc = SarimaModel.load_data()
-log = SarimaModel.prepare_data(bc)
+        train_data = bc[:train_end]
+        test_data = bc[train_end + timedelta(days=1):test_end]
 
-acff = acf(bc)
-print(acff)
+    @staticmethod
+    def show_bc_chart(bc):
+        plt.figure(figsize=(10, 4))
+        plt.plot(bc)
+        plt.title('bitcoin', fontsize=20)
+        plt.show()
+
+
+bc = SarimaModel.load_data_from_csv()
+# SarimaModel.show_bc_chart(bc)
+# log = SarimaModel.prepare_data(bc)
+first_diff = SarimaModel.remove_trend(bc)
+SarimaModel.acf(first_diff)
+# acff = acf(bc)
+# print(acff)
 
 # SarimaModel.best_param()
