@@ -86,21 +86,28 @@ class GatherInformation:
         csv_file = pd.read_csv(csv_file_path)
         return csv_file
 
+    @staticmethod
+    def convert_timestamps_to_dates(dictionary):
+        for i in range(len(dictionary.get('date'))):
+            s = int(dictionary.get('date')[i]/1000)
+            dictionary.get('date')[i] = datetime.fromtimestamp(s).date()
+
 
 def init():
     # crypto_names = ["bitcoin", "litecoin", "ethereum", "monero"]
     crypto_names = ["bitcoin"]
-    days = 1000
-    path = 'crypto.csv'
-
+    days = 400
+    path = '../Arima/crypto.csv'
 
     dictionary = GatherInformation.prep_rows(crypto_names, days)
+    GatherInformation.convert_timestamps_to_dates(dictionary)
 
+    # write to file
     GatherInformation.create_csv_file(dictionary, crypto_names)
+
+    # read from file
     cryptos = GatherInformation.read_csv_file(path)
     print(cryptos)
-    ts = cryptos.iloc[len(cryptos) - 1].date
-    print(ts)
 
 
 init()
