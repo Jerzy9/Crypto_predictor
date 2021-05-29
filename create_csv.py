@@ -97,7 +97,7 @@ def init():
     # crypto_names = ["bitcoin", "litecoin", "ethereum", "monero"]
     crypto_names = ["bitcoin"]
     days = 400
-    path = '../Arima/crypto.csv'
+    path = 'crypto.csv'
 
     dictionary = GatherInformation.prep_rows(crypto_names, days)
     GatherInformation.convert_timestamps_to_dates(dictionary)
