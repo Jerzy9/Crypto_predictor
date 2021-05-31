@@ -64,20 +64,25 @@ Step 3 -
 
 # pomocniczna metoda
 def plot_stat(data_set):
-    # # Original Series
     fig, axes = plt.subplots(3, 2)
+    fig.tight_layout(pad=0.05)
+
+    # # Original Series
+    d0 = adfuller(data_set.dropna())
     axes[0, 0].plot(data_set.value)
-    axes[0, 0].set_title('Original Series')
+    axes[0, 0].set_title('Original Series  ' + 'p-value of the test:' + str(d0[1]))
     plot_acf(data_set.value, ax=axes[0, 1])
 
     # 1st Differencing
+    d1 = adfuller(data_set.value.diff().dropna())
     axes[1, 0].plot(data_set.value.diff())
-    axes[1, 0].set_title('1st Order Differencing')
+    axes[1, 0].set_title('1st Order Differencing  ' + 'p-value of the test:' + str(d1[1]))
     plot_acf(data_set.value.diff().dropna(), ax=axes[1, 1])
 
     # 2nd Differencing
+    d2 = adfuller(data_set.value.diff().diff().dropna())
     axes[2, 0].plot(data_set.value.diff().diff())
-    axes[2, 0].set_title('2nd Order Differencing')
+    axes[2, 0].set_title('2nd Order Differencing  ' + 'p-value of the test:' + str(d2[1]))
     plot_acf(data_set.value.diff().diff().dropna(), ax=axes[2, 1])
 
     # print(data_set)
@@ -192,7 +197,7 @@ class DataProcessing:
 
         x_sample = df_sample.iloc[:, 1:].values.reshape(-1, p)
         df_sample['predicted_values'] = x_sample.dot(lr.coef_.T) + lr.intercept_
-        # df_test[['Value','Predicted_Values']].plot()
+        # df_test[['value','predicted_values']].plot()
 
         # print(x_sample)
         # root mean square error
@@ -209,9 +214,9 @@ class DataProcessing:
 
         res_train, res_test = DataProcessing.split_set(res)
 
-        res_train_2 = res_train.dropna()
-        x_train = res_train_2.iloc[:, 1:].values.reshape(-1, q)
-        y_train = res_train_2.iloc[:, 0].values.reshape(-1, 1)
+        res_train = res_train.dropna()
+        x_train = res_train.iloc[:, 1:].values.reshape(-1, q)
+        y_train = res_train.iloc[:, 0].values.reshape(-1, 1)
 
         # print(x_train)
         lr = LinearRegression()
@@ -219,18 +224,18 @@ class DataProcessing:
 
         theta = lr.coef_.T
         intercept = lr.intercept_
-        res_train_2['predicted_values'] = x_train.dot(lr.coef_.T) + lr.intercept_
-        # res_train_2[['Residuals','Predicted_Values']].plot()
+        res_train['predicted_values'] = x_train.dot(lr.coef_.T) + lr.intercept_
+        # res_train[['residuals', 'predicted_values']].plot()
 
         x_test = res_test.iloc[:, 1:].values.reshape(-1, q)
         res_test['predicted_values'] = x_test.dot(lr.coef_.T) + lr.intercept_
-        # res_test[['Residuals','Predicted_Values']].plot()
+        # res_test[['residuals','predicted_values']].plot()
 
         RMSE = np.sqrt(mean_squared_error(res_test['residuals'], res_test['predicted_values']))
 
         # print("The RMSE is :", RMSE, ", Value of q : ", q)
 
-        return [res_train_2, res_test, theta, intercept, RMSE]
+        return [res_train, res_test, theta, intercept, RMSE]
 
     @staticmethod
     def ARIMA(df):
@@ -240,8 +245,30 @@ class DataProcessing:
         best_rmse = math.inf
         best_p = -1
 
+        # WYKRES
+        fig, ax = plt.subplots(5, 4, figsize=(15, 5))
+        fig.tight_layout(pad=0.05)
+        # fig.tight_layout()
+        # left = 0.125  # the left side of the subplots of the figure
+        # right = 0.9  # the right side of the subplots of the figure
+        # bottom = 0.1  # the bottom of the subplots of the figure
+        # top = 0.9  # the top of the subplots of the figure
+        # wspace = 0.5  # the amount of width reserved for blank space between subplots
+        # hspace = 0.5  # the amount of height reserved for white space between subplots
+        # plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)
+        x, y = 0, 0
         for i in range(1, 21):
             [df_train, df_test, theta, intercept, rmse] = DataProcessing.AR(pd.DataFrame(df_stat.value), i)
+
+            # indexy
+            print("X: ", x, "Y: ", y)
+            ax[x, y].plot(df_test[['value', 'predicted_values']])
+            ax[x, y].set_title("p:" + str(i) + "  RMSE:" + str(round(rmse, 5)))
+            y += 1
+            if i % 4 == 0:
+                x += 1
+            if y == 4:
+                y = 0
             if rmse < best_rmse:
                 best_rmse = rmse
                 best_p = i
@@ -262,8 +289,13 @@ class DataProcessing:
         best_rmse2 = math.inf
         best_q = -1
 
-        for i in range(1, 13):
+        # WYKRES
+        fig, ax = plt.subplots(5, 4, figsize=(15, 5))
+        fig.tight_layout(pad=0.05)
+        x, y = 0, 0
+        for i in range(1, 21):
             [res_train, res_test, theta, intercept, rmse] = DataProcessing.MA(pd.DataFrame(res.residuals), i)
+
             if rmse < best_rmse2:
                 best_rmse2 = rmse
                 best_q = i
@@ -274,6 +306,8 @@ class DataProcessing:
         res_c = pd.concat([res_train, res_test])
 
         df_c.predicted_values += res_c.predicted_values
+
+        df_c[['value', 'predicted_values']].plot()
 
         # plt.show()
         print("\nSTAGE 4 - ARIMA")
@@ -321,6 +355,7 @@ def init():
     # df_stationary, d = DataProcessing.make_data_stationary(data_set)
     # DataProcessing.AR(df, 5)
 
+    # plot_stat(df)
     df_c = DataProcessing.ARIMA(df)
 
     #
