@@ -3,7 +3,7 @@ import json
 import csv
 import pandas as pd
 import numpy as np
-from _datetime import datetime
+import datetime
 
 
 class GatherInformation:
@@ -61,8 +61,8 @@ class GatherInformation:
 
     @staticmethod
     # Take all rows and put them into .csv file
-    def create_csv_file(dictionary, crypto_names):
-        with open("crypto.csv", "w", newline='') as file:
+    def create_csv_file(path, dictionary, crypto_names):
+        with open(path, "w", newline='') as file:
             writer = csv.writer(file)
             rows_quantity = len(dictionary.get('date'))
 
@@ -79,6 +79,11 @@ class GatherInformation:
 
                 # write row
                 writer.writerow(new_row)
+
+            # print(new_row[0])
+            tom = datetime.date.today() + datetime.timedelta(days=1)
+            doubled_row = [tom, new_row[1]]
+            writer.writerow(doubled_row)
             file.close()
 
     @staticmethod
@@ -90,24 +95,23 @@ class GatherInformation:
     def convert_timestamps_to_dates(dictionary):
         for i in range(len(dictionary.get('date'))):
             s = int(dictionary.get('date')[i]/1000)
-            dictionary.get('date')[i] = datetime.fromtimestamp(s).date()
+            dictionary.get('date')[i] = datetime.datetime.fromtimestamp(s).date()
 
 
 def init():
     # crypto_names = ["bitcoin", "litecoin", "ethereum", "monero"]
     crypto_names = ["bitcoin"]
     days = 400
-    path = '../Arima/crypto.csv'
+    path = './crypto.csv'
 
     dictionary = GatherInformation.prep_rows(crypto_names, days)
     GatherInformation.convert_timestamps_to_dates(dictionary)
 
     # write to file
-    GatherInformation.create_csv_file(dictionary, crypto_names)
+    GatherInformation.create_csv_file(path, dictionary, crypto_names)
 
     # read from file
     cryptos = GatherInformation.read_csv_file(path)
-    print(cryptos)
 
 
 init()
